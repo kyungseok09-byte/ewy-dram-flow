@@ -1,0 +1,60 @@
+name: EWY/DRAM Flow Report
+
+on:
+  schedule:
+    # KST = UTC+9. 08:00 KST -> 23:00 UTC(전날), 10:00 KST -> 01:00 UTC
+    - cron: "0 23 * * *"  # 08:00 KST -> preliminary
+    - cron: "0 1 * * *"   # 10:00 KST -> confirmed
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preliminary 또는 confirmed"
+        required: false
+        default: "preliminary"
+        type: choice
+        options:
+          - preliminary
+          - confirmed
+
+permissions:
+  contents: write
+
+jobs:
+  run-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Determine mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 23 * * *" ]; then
+            echo "mode=preliminary" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=confirmed" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run report
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py --mode ${{ steps.mode.outputs.mode }}
+
+      - name: Commit updated state.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "chore: update state.json (${{ steps.mode.outputs.mode }})"
+          git push
