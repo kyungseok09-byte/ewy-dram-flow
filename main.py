@@ -76,41 +76,113 @@ def get_stock_trading_data(code):
         print(f"Error fetching {code}: {e}")
         return None
 
-def get_ewy_data():
-    """EWY ETF 데이터 수집 (Yahoo Finance 우회)"""
+def get_ewy_flow_data(state):
+    """EWY ETF 자금 유출입 분석 (yfinance 사용)"""
     try:
-        # 네이버 해외 주식에서 EWY 검색
-        url = "https://finance.naver.com/world/sise.naver?symbol=EWY"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        res = requests.get(url, headers=headers, timeout=10)
-        res.raise_for_status()
+        import yfinance as yf
         
-        soup = BeautifulSoup(res.content.decode('euc-kr', 'replace'), 'html.parser')
+        # EWY 데이터 수집
+        ewy = yf.Ticker("EWY")
+        info = ewy.info
+        hist = ewy.history(period="5d")
         
-        # 현재가
-        price_elem = soup.select_one('.no_today .no_up')
-        if not price_elem:
-            price_elem = soup.select_one('.no_today .no_down')
-        if not price_elem:
-            price_elem = soup.select_one('.no_today em')
-            
-        price = price_elem.text.strip() if price_elem else "N/A"
+        if hist.empty or len(hist) < 2:
+            return None
         
-        # 변동률
-        rate_elem = soup.select_one('.no_exday .no_up')
-        if not rate_elem:
-            rate_elem = soup.select_one('.no_exday .no_down')
-            
-        rate = rate_elem.text.strip() if rate_elem else "N/A"
+        # 최신 데이터
+        latest_date = hist.index[-1].strftime('%Y-%m-%d')
+        latest_price = hist['Close'].iloc[-1]
+        prev_price = hist['Close'].iloc[-2]
+        change_pct = ((latest_price - prev_price) / prev_price) * 100
+        
+        # NAV 및 발행좌수
+        nav = info.get('navPrice', latest_price)
+        shares_outstanding = info.get('sharesOutstanding', 0)
+        
+        # 전일 발행좌수 (state에서 가져오기)
+        prev_shares = state.get('last_data', {}).get('EWY', {}).get('shares_outstanding', shares_outstanding)
+        
+        # 발행좌수 변화 계산
+        shares_change = shares_outstanding - prev_shares
+        
+        # 순유입/유출 계산 (달러)
+        flow_usd = shares_change * nav
+        
+        # EWY holdings 비중 로드
+        holdings = load_holdings()
+        samsung_weight = holdings['samsung_electronics'] / 100
+        hynix_weight = holdings['sk_hynix'] / 100
+        total_semi_weight = samsung_weight + hynix_weight
+        
+        # 반도체 섹터 유입 (달러)
+        semi_flow_usd = flow_usd * total_semi_weight
+        
+        # 환율 가져오기
+        usd_krw = get_exchange_rate()
+        
+        # 원화 환산
+        semi_flow_krw = semi_flow_usd * usd_krw
+        
+        # 삼성전자 / SK하이닉스 배분
+        samsung_flow_krw = semi_flow_krw * (samsung_weight / total_semi_weight)
+        hynix_flow_krw = semi_flow_krw * (hynix_weight / total_semi_weight)
         
         return {
-            "price": price,
-            "change_rate": rate,
-            "timestamp": datetime.now(pytz.timezone('Asia/Seoul')).strftime('%Y-%m-%d %H:%M')
+            "date": latest_date,
+            "price": round(latest_price, 2),
+            "change_pct": round(change_pct, 2),
+            "nav": round(nav, 2),
+            "shares_outstanding": shares_outstanding,
+            "shares_change": shares_change,
+            "flow_usd": flow_usd,
+            "flow_krw": flow_usd * usd_krw,
+            "semi_flow_krw": semi_flow_krw,
+            "samsung_flow_krw": samsung_flow_krw,
+            "hynix_flow_krw": hynix_flow_krw,
+            "usd_krw": usd_krw,
+            "samsung_weight": samsung_weight * 100,
+            "hynix_weight": hynix_weight * 100
         }
     except Exception as e:
-        print(f"Error fetching EWY: {e}")
+        print(f"Error fetching EWY flow: {e}")
+        import traceback
+        traceback.print_exc()
         return None
+
+def load_holdings():
+    """EWY holdings 비중 로드"""
+    try:
+        with open('ewy_holdings.json', 'r') as f:
+            data = json.load(f)
+            return data['holdings']
+    except:
+        # 기본값
+        return {
+            "samsung_electronics": 27.5,
+            "sk_hynix": 3.8,
+            "total_semiconductor": 31.3
+        }
+
+def get_exchange_rate():
+    """원/달러 환율 가져오기 (네이버 금융)"""
+    try:
+        url = "https://finance.naver.com/marketindex/exchangeDetail.naver?marketindexCd=FX_USDKRW"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.content.decode('euc-kr', 'replace'), 'html.parser')
+        
+        rate_elem = soup.select_one('.no_today .no_up')
+        if not rate_elem:
+            rate_elem = soup.select_one('.no_today .no_down')
+        if not rate_elem:
+            rate_elem = soup.select_one('.no_today em')
+        
+        if rate_elem:
+            rate_str = rate_elem.text.strip().replace(',', '')
+            return float(rate_str)
+        return 1350.0  # 기본값
+    except:
+        return 1350.0  # 기본값
 
 def format_number(val):
     """수급 숫자 포맷팅 (억 단위)"""
@@ -155,6 +227,35 @@ def build_report(mode, data):
         f"🕐 생성 시각: {kst.strftime('%Y-%m-%d %H:%M KST')}\n"
     ]
     
+    # EWY 자금 흐름 분석
+    ewy = data.get("EWY")
+    if ewy and 'flow_usd' in ewy:
+        flow_usd_m = ewy['flow_usd'] / 1_000_000
+        flow_krw_b = ewy['flow_krw'] / 100_000_000
+        semi_flow_krw_b = ewy['semi_flow_krw'] / 100_000_000
+        samsung_flow_b = ewy['samsung_flow_krw'] / 100_000_000
+        hynix_flow_b = ewy['hynix_flow_krw'] / 100_000_000
+        
+        flow_sign = "+" if flow_usd_m >= 0 else ""
+        semi_sign = "+" if semi_flow_krw_b >= 0 else ""
+        samsung_sign = "+" if samsung_flow_b >= 0 else ""
+        hynix_sign = "+" if hynix_flow_b >= 0 else ""
+        
+        lines.append(f"🇺🇸 *[EWY 자금 흐름 분석]* ({ewy['date']})")
+        lines.append(f"  현재가: ${ewy['price']} ({ewy['change_pct']:+.2f}%)")
+        lines.append(f"  NAV: ${ewy['nav']} | 환율: {ewy['usd_krw']:.2f}원")
+        lines.append(f"  발행좌수 변화: {ewy['shares_change']:+,}주")
+        lines.append(f"💵 EWY 순유입: {flow_sign}${flow_usd_m:.1f}M ({flow_sign}{flow_krw_b:.0f}억원)")
+        lines.append(f"🇰🇷 반도체 유입(추정): {semi_sign}{semi_flow_krw_b:.0f}억원")
+        lines.append(f"  🔵 삼성전자({ewy['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
+        lines.append(f"  🟢 하이닉스({ewy['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
+    elif ewy:
+        lines.append(f"🇺🇸 *EWY* ({ewy.get('date', 'N/A')})")
+        lines.append(f"  가격: ${ewy.get('price', 'N/A')}")
+        lines.append(f"  변동: {ewy.get('change_pct', 'N/A')}%\n")
+    else:
+        lines.append("🇺🇸 *EWY*: 데이터 수집 실패\n")
+    
     # 삼성전자
     samsung = data.get("삼성전자")
     if samsung:
@@ -171,18 +272,9 @@ def build_report(mode, data):
         lines.append(f"🟢 *SK하이닉스* ({hynix['date']})")
         lines.append(f"  종가: {hynix['close']}원")
         lines.append(f"  외국인: {format_number(hynix['foreign'])}")
-        lines.append(f"  기관: {format_number(hynix['institution'])}\n")
+        lines.append(f"  기관: {format_number(hynix['institution'])}")
     else:
-        lines.append("🟢 *SK하이닉스*: 데이터 수집 실패\n")
-    
-    # EWY ETF
-    ewy = data.get("EWY")
-    if ewy:
-        lines.append(f"🇺🇸 *EWY (iShares MSCI Korea)* ({ewy['timestamp']})")
-        lines.append(f"  가격: ${ewy['price']}")
-        lines.append(f"  변동: {ewy['change_rate']}")
-    else:
-        lines.append("🇺🇸 *EWY*: 데이터 수집 실패")
+        lines.append("🟢 *SK하이닉스*: 데이터 수집 실패")
     
     lines.append("\n---------------")
     return "\n".join(lines)
@@ -205,9 +297,9 @@ def main():
         if data:
             collected[name] = data
     
-    # EWY 수집
-    print("수집 중: EWY")
-    ewy = get_ewy_data()
+    # EWY 수집 (자금 흐름 분석)
+    print("수집 중: EWY (자금 흐름)")
+    ewy = get_ewy_flow_data(state)
     if ewy:
         collected["EWY"] = ewy
     

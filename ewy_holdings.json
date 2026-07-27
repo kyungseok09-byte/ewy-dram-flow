@@ -1,0 +1,10 @@
+{
+  "updated": "2026-07-27",
+  "source": "iShares official (manual update)",
+  "holdings": {
+    "samsung_electronics": 27.5,
+    "sk_hynix": 3.8,
+    "total_semiconductor": 31.3
+  },
+  "note": "이 비중은 분기별로 수동 업데이트 필요. iShares 공식 페이지 또는 Bloomberg에서 확인 가능."
+}
