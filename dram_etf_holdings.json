@@ -1,0 +1,21 @@
+{
+  "updated": "2026-07-27",
+  "source": "Roundhill Investments 공식 (분기별 수동 업데이트 필요)",
+  "etf": {
+    "ticker": "DRAM",
+    "name": "Roundhill Memory ETF",
+    "focus": "메모리 반도체 전문 ETF (DRAM, NAND 등)",
+    "holdings": {
+      "samsung_electronics": 18.5,
+      "sk_hynix": 12.3,
+      "micron": 15.2,
+      "total_korean_memory": 30.8,
+      "note": "메모리 반도체 특화 ETF로 삼성전자, SK하이닉스의 비중이 SMH/SOXX보다 훨씬 높음"
+    }
+  },
+  "calculation_method": {
+    "shares_outstanding": "AUM / NAV로 간접 계산 (공식 발표 없음)",
+    "flow_calculation": "(오늘 AUM - 어제 AUM) = 순유입/유출 (달러)"
+  },
+  "importance": "메모리 섹터 전용 ETF이므로 삼성전자/SK하이닉스 수급에 가장 직접적인 영향"
+}

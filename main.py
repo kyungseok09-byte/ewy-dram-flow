@@ -76,6 +76,82 @@ def get_stock_trading_data(code):
         print(f"Error fetching {code}: {e}")
         return None
 
+def get_dram_etf_flow(state):
+    """DRAM ETF (Roundhill Memory) 자금 유출입 분석"""
+    try:
+        import yfinance as yf
+        
+        dram = yf.Ticker("DRAM")
+        info = dram.info
+        hist = dram.history(period="5d")
+        
+        if hist.empty or len(hist) < 2:
+            return None
+        
+        # 최신 데이터
+        latest_date = hist.index[-1].strftime('%Y-%m-%d')
+        latest_price = hist['Close'].iloc[-1]
+        prev_price = hist['Close'].iloc[-2]
+        change_pct = ((latest_price - prev_price) / prev_price) * 100
+        
+        # NAV 및 총자산
+        nav = info.get('navPrice', latest_price)
+        total_assets = info.get('totalAssets', 0)
+        
+        # 발행좌수 추정 (AUM / NAV)
+        shares_outstanding = int(total_assets / nav) if nav > 0 else 0
+        
+        # 전일 총자산 (state에서 가져오기)
+        prev_total_assets = state.get('last_data', {}).get('DRAM', {}).get('total_assets', total_assets)
+        
+        # 자산 변화 = 순유입/유출 (발행좌수 변화 대신 AUM 변화 사용)
+        flow_usd = total_assets - prev_total_assets
+        
+        # DRAM ETF holdings 비중 로드
+        with open('dram_etf_holdings.json', 'r') as f:
+            dram_holdings = json.load(f)
+        holdings = dram_holdings['etf']['holdings']
+        
+        samsung_weight = holdings.get('samsung_electronics', 0) / 100
+        hynix_weight = holdings.get('sk_hynix', 0) / 100
+        total_korean_weight = samsung_weight + hynix_weight
+        
+        # 한국 메모리 유입 (달러)
+        korean_flow_usd = flow_usd * total_korean_weight
+        
+        # 환율 가져오기
+        usd_krw = get_exchange_rate()
+        
+        # 원화 환산
+        korean_flow_krw = korean_flow_usd * usd_krw
+        
+        # 삼성전자 / SK하이닉스 배분
+        samsung_flow_krw = korean_flow_krw * (samsung_weight / total_korean_weight) if total_korean_weight > 0 else 0
+        hynix_flow_krw = korean_flow_krw * (hynix_weight / total_korean_weight) if total_korean_weight > 0 else 0
+        
+        return {
+            "ticker": "DRAM",
+            "name": "Roundhill Memory ETF",
+            "date": latest_date,
+            "price": round(latest_price, 2),
+            "change_pct": round(change_pct, 2),
+            "nav": round(nav, 2),
+            "total_assets": total_assets,
+            "shares_outstanding_est": shares_outstanding,
+            "flow_usd": flow_usd,
+            "flow_krw": flow_usd * usd_krw,
+            "korean_flow_krw": korean_flow_krw,
+            "samsung_flow_krw": samsung_flow_krw,
+            "hynix_flow_krw": hynix_flow_krw,
+            "samsung_weight": samsung_weight * 100,
+            "hynix_weight": hynix_weight * 100
+        }
+    except Exception as e:
+        print(f"Error fetching DRAM ETF flow: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 def get_semiconductor_etf_flow(ticker, state):
     """반도체 ETF 자금 유출입 분석 (SMH, SOXX 등)"""
     try:
@@ -328,6 +404,28 @@ def build_report(mode, data):
         f"🕐 생성 시각: {kst.strftime('%Y-%m-%d %H:%M KST')}\n"
     ]
     
+    # DRAM ETF 자금 흐름 분석 (최우선 표시)
+    dram = data.get("DRAM")
+    if dram and 'flow_usd' in dram:
+        flow_usd_m = dram['flow_usd'] / 1_000_000
+        flow_krw_b = dram['flow_krw'] / 100_000_000
+        korean_flow_krw_b = dram['korean_flow_krw'] / 100_000_000
+        samsung_flow_b = dram['samsung_flow_krw'] / 100_000_000
+        hynix_flow_b = dram['hynix_flow_krw'] / 100_000_000
+        
+        flow_sign = "+" if flow_usd_m >= 0 else ""
+        korean_sign = "+" if korean_flow_krw_b >= 0 else ""
+        samsung_sign = "+" if samsung_flow_b >= 0 else ""
+        hynix_sign = "+" if hynix_flow_b >= 0 else ""
+        
+        lines.append(f"💾 *[DRAM ETF 자금 흐름]* ({dram['date']}) 🔥")
+        lines.append(f"  현재가: ${dram['price']} ({dram['change_pct']:+.2f}%)")
+        lines.append(f"  AUM 변화: {flow_sign}${flow_usd_m:.1f}M")
+        lines.append(f"💵 DRAM ETF 순유입: {flow_sign}${flow_usd_m:.1f}M ({flow_sign}{flow_krw_b:.0f}억원)")
+        lines.append(f"🇰🇷 한국 메모리 유입: {korean_sign}{korean_flow_krw_b:.0f}억원")
+        lines.append(f"  🔵 삼성({dram['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
+        lines.append(f"  🟢 하이닉스({dram['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
+    
     # 반도체 ETF 자금 흐름 분석
     smh = data.get("SMH")
     soxx = data.get("SOXX")
@@ -435,6 +533,12 @@ def main():
     
     # 데이터 수집
     collected = {}
+    
+    # DRAM ETF 수집 (최우선 - 메모리 전문)
+    print("수집 중: DRAM ETF (메모리 반도체 전문)")
+    dram_data = get_dram_etf_flow(state)
+    if dram_data:
+        collected["DRAM"] = dram_data
     
     # 반도체 ETF 수집 (SMH, SOXX)
     for ticker in ["SMH", "SOXX"]:
