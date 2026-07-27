@@ -1,5 +1,5 @@
 {
-  "last_run": "2026-07-27T22:13:30.040885+09:00",
+  "last_run": "2026-07-27T22:15:32.144101+09:00",
   "last_mode": "confirmed",
   "last_data": {
     "DRAM": {
@@ -19,40 +19,6 @@
       "samsung_weight": 18.5,
       "hynix_weight": 12.3
     },
-    "SMH": {
-      "ticker": "SMH",
-      "name": "VanEck Semiconductor ETF",
-      "date": "2026-07-24",
-      "price": 561.19,
-      "change_pct": -3.27,
-      "nav": 561.09,
-      "shares_outstanding": 11670900,
-      "shares_change": 0,
-      "flow_usd": 0.0,
-      "flow_krw": 0.0,
-      "korean_flow_krw": 0.0,
-      "samsung_flow_krw": 0.0,
-      "hynix_flow_krw": 0.0,
-      "samsung_weight": 4.2,
-      "hynix_weight": 1.8000000000000003
-    },
-    "SOXX": {
-      "ticker": "SOXX",
-      "name": "iShares Semiconductor ETF",
-      "date": "2026-07-24",
-      "price": 527.01,
-      "change_pct": -4.4,
-      "nav": 527.01,
-      "shares_outstanding": 7650000,
-      "shares_change": 0,
-      "flow_usd": 0.0,
-      "flow_krw": 0.0,
-      "korean_flow_krw": 0.0,
-      "samsung_flow_krw": 0.0,
-      "hynix_flow_krw": 0.0,
-      "samsung_weight": 3.8,
-      "hynix_weight": 1.5
-    },
     "EWY": {
       "date": "2026-07-24",
       "price": 162.96,
@@ -65,7 +31,7 @@
       "semi_flow_krw": 0.0,
       "samsung_flow_krw": 0.0,
       "hynix_flow_krw": 0.0,
-      "usd_krw": 1470.4,
+      "usd_krw": 1470.6,
       "samsung_weight": 27.500000000000004,
       "hynix_weight": 3.8
     },

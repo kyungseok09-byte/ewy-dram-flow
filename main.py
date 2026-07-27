@@ -426,49 +426,6 @@ def build_report(mode, data):
         lines.append(f"  🔵 삼성({dram['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
         lines.append(f"  🟢 하이닉스({dram['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
     
-    # 반도체 ETF 자금 흐름 분석
-    smh = data.get("SMH")
-    soxx = data.get("SOXX")
-    
-    if smh and 'flow_usd' in smh:
-        flow_usd_m = smh['flow_usd'] / 1_000_000
-        flow_krw_b = smh['flow_krw'] / 100_000_000
-        korean_flow_krw_b = smh['korean_flow_krw'] / 100_000_000
-        samsung_flow_b = smh['samsung_flow_krw'] / 100_000_000
-        hynix_flow_b = smh['hynix_flow_krw'] / 100_000_000
-        
-        flow_sign = "+" if flow_usd_m >= 0 else ""
-        korean_sign = "+" if korean_flow_krw_b >= 0 else ""
-        samsung_sign = "+" if samsung_flow_b >= 0 else ""
-        hynix_sign = "+" if hynix_flow_b >= 0 else ""
-        
-        lines.append(f"🔬 *[SMH 자금 흐름]* ({smh['date']})")
-        lines.append(f"  현재가: ${smh['price']} ({smh['change_pct']:+.2f}%)")
-        lines.append(f"  발행좌수 변화: {smh['shares_change']:+,}주")
-        lines.append(f"💵 SMH 순유입: {flow_sign}${flow_usd_m:.1f}M ({flow_sign}{flow_krw_b:.0f}억원)")
-        lines.append(f"🇰🇷 한국 반도체 유입: {korean_sign}{korean_flow_krw_b:.0f}억원")
-        lines.append(f"  🔵 삼성({smh['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
-        lines.append(f"  🟢 하이닉스({smh['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
-    
-    if soxx and 'flow_usd' in soxx:
-        flow_usd_m = soxx['flow_usd'] / 1_000_000
-        korean_flow_krw_b = soxx['korean_flow_krw'] / 100_000_000
-        samsung_flow_b = soxx['samsung_flow_krw'] / 100_000_000
-        hynix_flow_b = soxx['hynix_flow_krw'] / 100_000_000
-        
-        flow_sign = "+" if flow_usd_m >= 0 else ""
-        korean_sign = "+" if korean_flow_krw_b >= 0 else ""
-        samsung_sign = "+" if samsung_flow_b >= 0 else ""
-        hynix_sign = "+" if hynix_flow_b >= 0 else ""
-        
-        lines.append(f"🔬 *[SOXX 자금 흐름]* ({soxx['date']})")
-        lines.append(f"  현재가: ${soxx['price']} ({soxx['change_pct']:+.2f}%)")
-        lines.append(f"  발행좌수 변화: {soxx['shares_change']:+,}주")
-        lines.append(f"💵 SOXX 순유입: {flow_sign}${flow_usd_m:.1f}M")
-        lines.append(f"🇰🇷 한국 반도체 유입: {korean_sign}{korean_flow_krw_b:.0f}억원")
-        lines.append(f"  🔵 삼성({soxx['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
-        lines.append(f"  🟢 하이닉스({soxx['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
-    
     # EWY 자금 흐름 분석
     ewy = data.get("EWY")
     if ewy and 'flow_usd' in ewy:
@@ -539,13 +496,6 @@ def main():
     dram_data = get_dram_etf_flow(state)
     if dram_data:
         collected["DRAM"] = dram_data
-    
-    # 반도체 ETF 수집 (SMH, SOXX)
-    for ticker in ["SMH", "SOXX"]:
-        print(f"수집 중: {ticker} (반도체 ETF 자금 흐름)")
-        etf_data = get_semiconductor_etf_flow(ticker, state)
-        if etf_data:
-            collected[ticker] = etf_data
     
     # EWY 수집 (자금 흐름 분석)
     print("수집 중: EWY (한국 ETF 자금 흐름)")
