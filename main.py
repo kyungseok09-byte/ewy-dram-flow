@@ -46,17 +46,19 @@ def get_stock_trading_data(code):
         
         soup = BeautifulSoup(res.content.decode('euc-kr', 'replace'), 'html.parser')
         
-        # 최근 데이터 (첫 번째 tr)
-        table = soup.select_one('table.type2')
-        if not table:
+        # 두 번째 테이블에 외국인/기관 수급 데이터가 있음
+        tables = soup.select('table.type2')
+        if len(tables) < 2:
             return None
             
+        table = tables[1]  # 두 번째 테이블
         rows = table.select('tr')
+        
         for row in rows:
             cells = row.select('td')
             if len(cells) >= 7:
                 date = cells[0].text.strip()
-                if not date or '날짜' in date:
+                if not date or '날짜' in date or not date[0].isdigit():
                     continue
                     
                 close_price = cells[1].text.strip().replace(',', '')
