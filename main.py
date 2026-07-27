@@ -76,6 +76,84 @@ def get_stock_trading_data(code):
         print(f"Error fetching {code}: {e}")
         return None
 
+def get_semiconductor_etf_flow(ticker, state):
+    """반도체 ETF 자금 유출입 분석 (SMH, SOXX 등)"""
+    try:
+        import yfinance as yf
+        
+        etf = yf.Ticker(ticker)
+        info = etf.info
+        hist = etf.history(period="5d")
+        
+        if hist.empty or len(hist) < 2:
+            return None
+        
+        # 최신 데이터
+        latest_date = hist.index[-1].strftime('%Y-%m-%d')
+        latest_price = hist['Close'].iloc[-1]
+        prev_price = hist['Close'].iloc[-2]
+        change_pct = ((latest_price - prev_price) / prev_price) * 100
+        
+        # NAV 및 발행좌수
+        nav = info.get('navPrice', latest_price)
+        shares_outstanding = info.get('sharesOutstanding', 0)
+        
+        if shares_outstanding == 0:
+            return None
+        
+        # 전일 발행좌수 (state에서 가져오기)
+        prev_shares = state.get('last_data', {}).get(ticker, {}).get('shares_outstanding', shares_outstanding)
+        
+        # 발행좌수 변화 계산
+        shares_change = shares_outstanding - prev_shares
+        
+        # 순유입/유출 계산 (달러)
+        flow_usd = shares_change * nav
+        
+        # ETF holdings 비중 로드
+        etf_holdings = load_semiconductor_etf_holdings()
+        holdings = etf_holdings.get(ticker, {})
+        
+        samsung_weight = holdings.get('samsung_electronics', 0) / 100
+        hynix_weight = holdings.get('sk_hynix', 0) / 100
+        total_korean_weight = samsung_weight + hynix_weight
+        
+        # 한국 반도체 유입 (달러)
+        korean_flow_usd = flow_usd * total_korean_weight
+        
+        # 환율 가져오기
+        usd_krw = get_exchange_rate()
+        
+        # 원화 환산
+        korean_flow_krw = korean_flow_usd * usd_krw
+        
+        # 삼성전자 / SK하이닉스 배분
+        samsung_flow_krw = korean_flow_krw * (samsung_weight / total_korean_weight) if total_korean_weight > 0 else 0
+        hynix_flow_krw = korean_flow_krw * (hynix_weight / total_korean_weight) if total_korean_weight > 0 else 0
+        
+        return {
+            "ticker": ticker,
+            "name": holdings.get('name', ticker),
+            "date": latest_date,
+            "price": round(latest_price, 2),
+            "change_pct": round(change_pct, 2),
+            "nav": round(nav, 2),
+            "shares_outstanding": shares_outstanding,
+            "shares_change": shares_change,
+            "flow_usd": flow_usd,
+            "flow_krw": flow_usd * usd_krw,
+            "korean_flow_krw": korean_flow_krw,
+            "samsung_flow_krw": samsung_flow_krw,
+            "hynix_flow_krw": hynix_flow_krw,
+            "samsung_weight": samsung_weight * 100,
+            "hynix_weight": hynix_weight * 100
+        }
+    except Exception as e:
+        print(f"Error fetching {ticker} flow: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 def get_ewy_flow_data(state):
     """EWY ETF 자금 유출입 분석 (yfinance 사용)"""
     try:
@@ -163,6 +241,29 @@ def load_holdings():
             "total_semiconductor": 31.3
         }
 
+def load_semiconductor_etf_holdings():
+    """반도체 ETF holdings 비중 로드"""
+    try:
+        with open('semiconductor_etf_holdings.json', 'r') as f:
+            data = json.load(f)
+            return data['etfs']
+    except:
+        # 기본값
+        return {
+            "SMH": {
+                "name": "VanEck Semiconductor ETF",
+                "samsung_electronics": 4.2,
+                "sk_hynix": 1.8,
+                "total_korean_semiconductor": 6.0
+            },
+            "SOXX": {
+                "name": "iShares Semiconductor ETF",
+                "samsung_electronics": 3.8,
+                "sk_hynix": 1.5,
+                "total_korean_semiconductor": 5.3
+            }
+        }
+
 def get_exchange_rate():
     """원/달러 환율 가져오기 (네이버 금융)"""
     try:
@@ -226,6 +327,49 @@ def build_report(mode, data):
         f"📊 *[DRAM/EWY 수급 리포트 - {mode_label}]*",
         f"🕐 생성 시각: {kst.strftime('%Y-%m-%d %H:%M KST')}\n"
     ]
+    
+    # 반도체 ETF 자금 흐름 분석
+    smh = data.get("SMH")
+    soxx = data.get("SOXX")
+    
+    if smh and 'flow_usd' in smh:
+        flow_usd_m = smh['flow_usd'] / 1_000_000
+        flow_krw_b = smh['flow_krw'] / 100_000_000
+        korean_flow_krw_b = smh['korean_flow_krw'] / 100_000_000
+        samsung_flow_b = smh['samsung_flow_krw'] / 100_000_000
+        hynix_flow_b = smh['hynix_flow_krw'] / 100_000_000
+        
+        flow_sign = "+" if flow_usd_m >= 0 else ""
+        korean_sign = "+" if korean_flow_krw_b >= 0 else ""
+        samsung_sign = "+" if samsung_flow_b >= 0 else ""
+        hynix_sign = "+" if hynix_flow_b >= 0 else ""
+        
+        lines.append(f"🔬 *[SMH 자금 흐름]* ({smh['date']})")
+        lines.append(f"  현재가: ${smh['price']} ({smh['change_pct']:+.2f}%)")
+        lines.append(f"  발행좌수 변화: {smh['shares_change']:+,}주")
+        lines.append(f"💵 SMH 순유입: {flow_sign}${flow_usd_m:.1f}M ({flow_sign}{flow_krw_b:.0f}억원)")
+        lines.append(f"🇰🇷 한국 반도체 유입: {korean_sign}{korean_flow_krw_b:.0f}억원")
+        lines.append(f"  🔵 삼성({smh['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
+        lines.append(f"  🟢 하이닉스({smh['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
+    
+    if soxx and 'flow_usd' in soxx:
+        flow_usd_m = soxx['flow_usd'] / 1_000_000
+        korean_flow_krw_b = soxx['korean_flow_krw'] / 100_000_000
+        samsung_flow_b = soxx['samsung_flow_krw'] / 100_000_000
+        hynix_flow_b = soxx['hynix_flow_krw'] / 100_000_000
+        
+        flow_sign = "+" if flow_usd_m >= 0 else ""
+        korean_sign = "+" if korean_flow_krw_b >= 0 else ""
+        samsung_sign = "+" if samsung_flow_b >= 0 else ""
+        hynix_sign = "+" if hynix_flow_b >= 0 else ""
+        
+        lines.append(f"🔬 *[SOXX 자금 흐름]* ({soxx['date']})")
+        lines.append(f"  현재가: ${soxx['price']} ({soxx['change_pct']:+.2f}%)")
+        lines.append(f"  발행좌수 변화: {soxx['shares_change']:+,}주")
+        lines.append(f"💵 SOXX 순유입: {flow_sign}${flow_usd_m:.1f}M")
+        lines.append(f"🇰🇷 한국 반도체 유입: {korean_sign}{korean_flow_krw_b:.0f}억원")
+        lines.append(f"  🔵 삼성({soxx['samsung_weight']:.1f}%): {samsung_sign}{samsung_flow_b:.0f}억원")
+        lines.append(f"  🟢 하이닉스({soxx['hynix_weight']:.1f}%): {hynix_sign}{hynix_flow_b:.0f}억원\n")
     
     # EWY 자금 흐름 분석
     ewy = data.get("EWY")
@@ -291,17 +435,26 @@ def main():
     
     # 데이터 수집
     collected = {}
+    
+    # 반도체 ETF 수집 (SMH, SOXX)
+    for ticker in ["SMH", "SOXX"]:
+        print(f"수집 중: {ticker} (반도체 ETF 자금 흐름)")
+        etf_data = get_semiconductor_etf_flow(ticker, state)
+        if etf_data:
+            collected[ticker] = etf_data
+    
+    # EWY 수집 (자금 흐름 분석)
+    print("수집 중: EWY (한국 ETF 자금 흐름)")
+    ewy = get_ewy_flow_data(state)
+    if ewy:
+        collected["EWY"] = ewy
+    
+    # 한국 주식 수급
     for name, code in TARGETS.items():
         print(f"수집 중: {name} ({code})")
         data = get_stock_trading_data(code)
         if data:
             collected[name] = data
-    
-    # EWY 수집 (자금 흐름 분석)
-    print("수집 중: EWY (자금 흐름)")
-    ewy = get_ewy_flow_data(state)
-    if ewy:
-        collected["EWY"] = ewy
     
     # 리포트 생성
     report = build_report(args.mode, collected)

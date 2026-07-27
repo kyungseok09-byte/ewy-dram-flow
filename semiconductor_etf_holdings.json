@@ -1,0 +1,22 @@
+{
+  "updated": "2026-07-27",
+  "source": "각 ETF 공식 발표 자료 (분기별 수동 업데이트 필요)",
+  "etfs": {
+    "SMH": {
+      "name": "VanEck Semiconductor ETF",
+      "samsung_electronics": 4.2,
+      "sk_hynix": 1.8,
+      "total_korean_semiconductor": 6.0,
+      "note": "글로벌 반도체 업체 중심, 삼성/하이닉스는 메모리 섹터 대표로 편입"
+    },
+    "SOXX": {
+      "name": "iShares Semiconductor ETF",
+      "samsung_electronics": 3.8,
+      "sk_hynix": 1.5,
+      "total_korean_semiconductor": 5.3,
+      "note": "미국 중심 반도체 ETF, 한국 업체 비중 상대적으로 낮음"
+    }
+  },
+  "recommendation": "SMH (VanEck)가 AUM 규모가 가장 크고($77B), 한국 반도체 비중도 높아 주 추적 대상으로 권장",
+  "update_schedule": "분기별 (각 ETF 공식 holdings 발표 후)"
+}

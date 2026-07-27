@@ -1,18 +1,40 @@
 {
-  "last_run": "2026-07-27T22:08:34.638105+09:00",
+  "last_run": "2026-07-27T22:11:18.535068+09:00",
   "last_mode": "confirmed",
   "last_data": {
-    "삼성전자": {
-      "date": "2026.07.27",
-      "close": "254000",
-      "foreign": "22701316",
-      "institution": "-3319368"
+    "SMH": {
+      "ticker": "SMH",
+      "name": "VanEck Semiconductor ETF",
+      "date": "2026-07-24",
+      "price": 561.19,
+      "change_pct": -3.27,
+      "nav": 561.09,
+      "shares_outstanding": 11670900,
+      "shares_change": 0,
+      "flow_usd": 0.0,
+      "flow_krw": 0.0,
+      "korean_flow_krw": 0.0,
+      "samsung_flow_krw": 0.0,
+      "hynix_flow_krw": 0.0,
+      "samsung_weight": 4.2,
+      "hynix_weight": 1.8000000000000003
     },
-    "SK하이닉스": {
-      "date": "2026.07.27",
-      "close": "1816000",
-      "foreign": "3832589",
-      "institution": "-615917"
+    "SOXX": {
+      "ticker": "SOXX",
+      "name": "iShares Semiconductor ETF",
+      "date": "2026-07-24",
+      "price": 527.01,
+      "change_pct": -4.4,
+      "nav": 527.01,
+      "shares_outstanding": 7650000,
+      "shares_change": 0,
+      "flow_usd": 0.0,
+      "flow_krw": 0.0,
+      "korean_flow_krw": 0.0,
+      "samsung_flow_krw": 0.0,
+      "hynix_flow_krw": 0.0,
+      "samsung_weight": 3.8,
+      "hynix_weight": 1.5
     },
     "EWY": {
       "date": "2026-07-24",
@@ -29,6 +51,18 @@
       "usd_krw": 1470.7,
       "samsung_weight": 27.500000000000004,
       "hynix_weight": 3.8
+    },
+    "삼성전자": {
+      "date": "2026.07.27",
+      "close": "254000",
+      "foreign": "22701316",
+      "institution": "-3319368"
+    },
+    "SK하이닉스": {
+      "date": "2026.07.27",
+      "close": "1816000",
+      "foreign": "3832589",
+      "institution": "-615917"
     }
   }
 }
