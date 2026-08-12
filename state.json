@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-08-12T14:17:06.362011+09:00",
-  "last_mode": "preliminary",
+  "last_run": "2026-08-12T15:05:04.663990+09:00",
+  "last_mode": "confirmed",
   "last_data": {
     "DRAM": {
       "ticker": "DRAM",
@@ -24,14 +24,14 @@
       "price": 167.24,
       "change_pct": 2.53,
       "nav": 163.43,
-      "shares_outstanding": 0,
-      "shares_change": -75600000,
-      "flow_usd": -12355285320.0,
-      "flow_krw": -17480257670736.0,
-      "semi_flow_krw": -5471320650940.367,
-      "samsung_flow_krw": -4807070859452.399,
-      "hynix_flow_krw": -664249791487.9679,
-      "usd_krw": 1414.8,
+      "shares_outstanding": 75600000,
+      "shares_change": 75600000,
+      "flow_usd": 12355285320.0,
+      "flow_krw": 17493848484588.002,
+      "semi_flow_krw": 5475574575676.044,
+      "samsung_flow_krw": 4810808333261.7,
+      "hynix_flow_krw": 664766242414.344,
+      "usd_krw": 1415.9,
       "samsung_weight": 27.500000000000004,
       "hynix_weight": 3.8
     },
