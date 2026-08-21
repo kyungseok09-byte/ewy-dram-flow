@@ -1,6 +1,6 @@
 {
-  "last_run": "2026-08-21T08:53:50.751956+09:00",
-  "last_mode": "preliminary",
+  "last_run": "2026-08-21T12:57:18.958008+09:00",
+  "last_mode": "confirmed",
   "last_data": {
     "DRAM": {
       "ticker": "DRAM",
@@ -31,7 +31,7 @@
       "semi_flow_krw": 0.0,
       "samsung_flow_krw": 0.0,
       "hynix_flow_krw": 0.0,
-      "usd_krw": 1392.5,
+      "usd_krw": 1382.6,
       "samsung_weight": 27.500000000000004,
       "hynix_weight": 3.8
     },
