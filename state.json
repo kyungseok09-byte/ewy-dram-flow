@@ -1,13 +1,13 @@
 {
-  "last_run": "2026-09-03T14:23:21.281173+09:00",
-  "last_mode": "confirmed",
+  "last_run": "2026-09-04T09:50:19.873825+09:00",
+  "last_mode": "preliminary",
   "last_data": {
     "DRAM": {
       "ticker": "DRAM",
       "name": "Roundhill Memory ETF",
-      "date": "2026-09-02",
-      "price": 56.21,
-      "change_pct": 2.09,
+      "date": "2026-09-03",
+      "price": NaN,
+      "change_pct": NaN,
       "nav": 56.61,
       "total_assets": 24554743808,
       "shares_outstanding_est": 433715219,
@@ -20,32 +20,32 @@
       "hynix_weight": 12.3
     },
     "EWY": {
-      "date": "2026-09-02",
-      "price": 178.86,
-      "change_pct": 1.74,
+      "date": "2026-09-03",
+      "price": NaN,
+      "change_pct": NaN,
       "nav": 178.01,
-      "shares_outstanding": 0,
-      "shares_change": 0,
-      "flow_usd": 0.0,
-      "flow_krw": 0.0,
-      "semi_flow_krw": 0.0,
-      "samsung_flow_krw": 0.0,
-      "hynix_flow_krw": 0.0,
-      "usd_krw": 1360.3,
+      "shares_outstanding": 75600000,
+      "shares_change": 75600000,
+      "flow_usd": 13457196900.0,
+      "flow_krw": 18261416193300.0,
+      "semi_flow_krw": 5715823268502.899,
+      "samsung_flow_krw": 5021889453157.5,
+      "hynix_flow_krw": 693933815345.3999,
+      "usd_krw": 1357.0,
       "samsung_weight": 27.500000000000004,
       "hynix_weight": 3.8
     },
     "삼성전자": {
-      "date": "2026.09.02",
-      "close": "250500",
-      "foreign": "15176841",
-      "institution": "-1321536"
+      "date": "2026.09.03",
+      "close": "250000",
+      "foreign": "13756022",
+      "institution": "+91825"
     },
     "SK하이닉스": {
-      "date": "2026.09.02",
-      "close": "1613000",
-      "foreign": "2568478",
-      "institution": "-651507"
+      "date": "2026.09.03",
+      "close": "1596000",
+      "foreign": "2632758",
+      "institution": "-234626"
     }
   }
 }
